@@ -4,7 +4,7 @@ import stylus from 'stylus';
 import * as ejs from 'ejs';
 import UglifyJS from 'uglify-js';
 import { create } from 'markdown-to-html-cli';
-import _ from 'colors-cli/toxic.js';
+import _ from 'colors-cli/toxic';
 
 const deployDir = path.resolve(process.cwd(), '.deploy');
 const faviconPath = path.resolve(process.cwd(), 'template', 'img', 'favicon.ico');
@@ -107,9 +107,11 @@ const contributorsPath = path.resolve(process.cwd(), 'CONTRIBUTORS.svg');
     }));
 
   } catch (err) {
+    console.log(`\n ERROR :> ${err}\n`)
     if (err && err.message) {
       console.log(`\n ERROR :> ${err.message.red_bt}\n`)
     }
+    process.exit(1);
   }
 })();
 
@@ -216,7 +218,15 @@ const contributorsPath = path.resolve(process.cwd(), 'CONTRIBUTORS.svg');
 }
 
 function markdownToHTML(str) {
-  return create({ markdown: str, document: undefined, 'dark-mode': false });
+  return create({
+    rewrite: (node) => {
+      if (node.type === 'element' && node.properties?.href && /.md/.test(node.properties.href) && !/^(https?:\/\/)/.test(node.properties.href)) {
+        let href = node.properties.href;
+        node.properties.href = href.replace(/([^\.\/\\]+)\.(md|markdown)/gi, '$1.html');
+      }
+    },
+    markdown: str, document: undefined, 'dark-mode': false
+  });
 }
 
 /**
